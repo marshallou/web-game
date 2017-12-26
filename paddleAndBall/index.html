@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>game 1</title>
+    <style meda="screen">
+      canvas {
+        border: 1px black solid;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game_canvas" width="500" height="400"></canvas>
+    <script>
+      var imageFromPath = function(path) {
+        var img = new Image()
+        img.src = path
+        return img
+      }
+
+      var Paddle = function() {
+        var image = imageFromPath("paddle.png")
+        var o = {
+          img: image,
+          imgWidth: 200,
+          imgHeight: 30,
+          speed: 10,
+          x: 0,
+          y: 270,
+        };
+
+        o.moveLeft = function() {
+          o.x -= o.speed
+        }
+
+        o.moveRight = function() {
+          o.x += o.speed
+        }
+        return o
+      }
+
+      var Ball = function() {
+        var image = imageFromPath("ball.png")
+        var o = {
+          img: image,
+          imgWidth: 30,
+          imgHeight: 30,
+          speedX: 10,
+          speedY: 10,
+          x: 0,
+          y: 0,
+          moving: false,
+        }
+
+        o.start = function() {
+          o.moving = true
+        }
+
+        o.move = function(canvas) {
+          if (o.moving) {
+            if (o.x < 0 || o.x + o.imgWidth > canvas.width) {
+              o.speedX = -o.speedX
+            }
+
+            if (o.y < 0 || o.y + o.imgHeight > canvas.height) {
+              o.speedY = -o.speedY
+            }
+
+            o.x += o.speedX
+            o.y += o.speedY
+          }
+        }
+        return o;
+      }
+
+      var Game = function() {
+        //game exposes three methods: register, update, draw
+        //register: when keydown, the callback will be triggered 30 times/second
+        //used to get user input
+        //update: tell game how to change the state of objects if something happens
+        //in canvas like collision
+        //draw: tell game to draw images
+        var canvas = document.querySelector('#game_canvas')
+        var context = canvas.getContext('2d')
+        var actions = {}
+        var keydowns = {}
+        var o = {}
+        o.canvas = canvas
+
+        window.addEventListener('keydown', function(event) {
+          keydowns[event.key] = true
+        })
+
+        window.addEventListener('keyup', function(event) {
+          keydowns[event.key] = false
+        })
+
+        o.drawImage = function(gameImage) {
+          context.drawImage(gameImage.img, gameImage.x, gameImage.y,
+            gameImage.imgWidth, gameImage.imgHeight)
+        }
+
+        o.register = function(key, callback) {
+          actions[key] = callback
+        }
+
+        o.collided = function(paddle, ball) {
+          var xOverlapping = ball.x + ball.imgWidth > paddle.x && ball.x < paddle.x + paddle.imgWidth
+          var yOverlapping = ball.y + ball.imgHeight > paddle.y && ball.y < paddle.y + paddle.imgHeight
+          return xOverlapping && yOverlapping
+        }
+
+        // o.xcollided = function(paddle, ball) {
+        //   //since ball's speedX == speedY, we can measure which edge collides by compare value of
+        //   //xOverlapping and yOverlapping.
+        //   //Note this function should only be called if "collided" returns true
+        //   var xOverlapping = Math.min(Math.abs(paddle.x - ball.x - ball.imgWidth),
+        //                               Math.abs(paddle.x + paddle.imgWidth - ball.x))
+        //   var yOverlapping = Math.min(Math.abs(paddle.y - ball.y - ball.imgHeight),
+        //                               Math.abs(paddle.y + paddle.imgHeight - ball.y))
+        //   return xOverlapping > yOverlapping
+        // }
+
+        //only call this after register, update and draw inited
+        o.start = function() {
+          setInterval(function() {
+            context.clearRect(0, 0, canvas.width, canvas.height)
+
+            Object.keys(keydowns).forEach(function(key) {
+              if (keydowns[key]) {
+                  actions[key]()
+              }
+            })
+
+            o.update()
+            o.draw()
+
+          }, 1000/30);
+        }
+
+        return o
+      }
+
+      var __main = function() {
+        var game = Game()
+        var paddle = Paddle()
+        var ball = Ball()
+
+        game.register('ArrowLeft', function() {
+          paddle.moveLeft()
+        })
+
+        game.register('ArrowRight', function() {
+          paddle.moveRight()
+        })
+
+        game.register('f', function() {
+          ball.start()
+        })
+
+        game.update = function() {
+          ball.move(game.canvas)
+
+          if(game.collided(paddle, ball)) {
+            ball.speedY = -ball.speedY
+          }
+        }
+
+        game.draw = function() {
+          game.drawImage(paddle)
+          game.drawImage(ball)
+        }
+
+        game.start()
+      }
+      __main()
+      //move Image
+    </script>
+  </body>
+</html>
